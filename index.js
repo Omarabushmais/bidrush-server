@@ -3,6 +3,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
 
+const authRoutes = require('./routes/authRoutes');
+
 const pool = require('./db'); 
 
 const app = express();
@@ -10,6 +12,8 @@ const app = express();
 app.use(morgan('dev'));
 app.use(cors());
 app.use(express.json());
+
+app.use('/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('BidRush API is running...');
