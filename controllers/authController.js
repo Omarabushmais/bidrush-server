@@ -54,13 +54,13 @@ const login = async (req, res) => {
     const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
 
     if (user.rows.length === 0) {
-      return res.status(401).json({ message: "Email not found" });
+      return res.status(401).json({ message: "Invalid Email" });
     }
 
     const validPassword = await bcrypt.compare(password, user.rows[0].password);
 
     if (!validPassword) {
-      return res.status(401).json({ message: "Wrong password" });
+      return res.status(401).json({ message: "Incorrect Password" });
     }
 
     const token = jwt.sign(
