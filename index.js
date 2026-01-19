@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require("path");
 require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
-
-const pool = require('./db'); 
+const auctionRoutes = require('./routes/auctions');
 
 const app = express();
 
@@ -14,6 +14,9 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/auth', authRoutes);
+app.use('/auctions', auctionRoutes);
+
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 app.get('/', (req, res) => {
   res.send('BidRush API is running...');
