@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const auctionRoutes = require('./routes/auctions');
+const bidRoutes = require('./routes/bids');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/auctions', auctionRoutes);
+app.use('/bids', bidRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
