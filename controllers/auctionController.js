@@ -41,12 +41,23 @@ const createAuction = async (req, res) => {
 };
 
 // ===============VIEW ALL AUCTION===============
-
 const getAllAuctions = async (req, res) => {
   try {
-    const allAuctions = await pool.query(`
-      SELECT a.*, (SELECT image_url FROM auction_images WHERE auction_id = a.id LIMIT 1) as image FROM auctions a
+    await pool.query(`
+      UPDATE auctions
+      SET status = 'ended'
+      WHERE end_time < NOW()
+        AND TRIM(LOWER(status)) = 'active'
     `);
+
+    const allAuctions = await pool.query(`
+      SELECT a.*, 
+             u.username, 
+             (SELECT image_url FROM auction_images WHERE auction_id = a.id LIMIT 1) AS image
+      FROM auctions a
+      JOIN users u ON a.seller_id = u.id
+    `);
+
     res.json(allAuctions.rows);
   } catch (err) {
     console.error(err.message);
@@ -55,25 +66,41 @@ const getAllAuctions = async (req, res) => {
 };
 
 // ===============VIEW ONE AUCTION===============
-
 const getAuctionById = async (req, res) => {
   try {
     const { id } = req.params;
-    const auction = await pool.query("SELECT * FROM auctions WHERE id = $1", [id]);
 
-    if (auction.rows.length === 0) {
+    await pool.query(`
+      UPDATE auctions
+      SET status='ended'
+      WHERE id = $1 AND end_time < NOW() AND TRIM(LOWER(status))='active'
+    `, [id]);
+
+    const auctionQuery = await pool.query(`
+      SELECT a.*, u.username AS seller_name
+      FROM auctions a
+      JOIN users u ON a.seller_id = u.id
+      WHERE a.id = $1
+    `, [id]);
+
+    if (auctionQuery.rows.length === 0) {
       return res.status(404).json("Auction not found");
     }
 
-    const images = await pool.query("SELECT id, image_url FROM auction_images WHERE auction_id = $1", [id]);
-    res.json({ ...auction.rows[0], images: images.rows });
+    let auction = auctionQuery.rows[0];
+
+    const imagesQuery = await pool.query(
+      "SELECT id, image_url FROM auction_images WHERE auction_id = $1",
+      [id]
+    );
+
+    res.json({ ...auction, images: imagesQuery.rows });
 
   } catch (err) {
     console.error(err.message);
     res.status(500).json("Server Error");
   }
 };
-
 // ===============EDIT AUCTION===============
 
 const updateAuction = async (req, res) => {
@@ -85,13 +112,14 @@ const updateAuction = async (req, res) => {
     const result = await pool.query(
       `UPDATE auctions 
        SET title = $1, description = $2, category = $3, starting_price = $4, bid_increment = $5, start_time = $6, end_time = $7 
-       WHERE id = $8 AND seller_id = $9 RETURNING *`,
+       WHERE id = $8 AND seller_id = $9 AND TRIM(LOWER(status)) = 'active' RETURNING *`,
       [title, description, category, starting_price, bid_increment, start_time, end_time, id, req.user]
     );
 
     if (result.rows.length === 0) {
-      return res.status(403).json("This auction is not yours or does not exist.");
+      return res.status(403).json("Cannot edit: not yours, not found, or already completed.");
     }
+
 
     if (imageFiles && imageFiles.length > 0) {
       for (const file of imageFiles) {
@@ -149,13 +177,22 @@ const deleteImage = async (req, res) => {
 const deleteAuction = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user;
 
-    const checkAuction = await pool.query("SELECT * FROM auctions WHERE id = $1 AND seller_id = $2", [id, req.user]);
+    const userQ = await pool.query("SELECT role FROM users WHERE id = $1", [userId]);
+    const userRole = userQ.rows[0]?.role;
+
+    const auctionQ = await pool.query("SELECT * FROM auctions WHERE id = $1", [id]);
     
-    if (checkAuction.rows.length === 0) {
-      return res.status(403).json("This auction is not yours or does not exist.");
+    if (auctionQ.rows.length === 0) {
+      return res.status(404).json("Auction not found.");
     }
 
+    const auction = auctionQ.rows[0];
+
+    if (userRole !== 'admin' && auction.seller_id !== userId) {
+       return res.status(403).json("You are not authorized to delete this auction.");
+    }
     const images = await pool.query("SELECT image_url FROM auction_images WHERE auction_id = $1", [id]);
     
     images.rows.forEach(img => {
@@ -166,7 +203,9 @@ const deleteAuction = async (req, res) => {
     });
 
     await pool.query("DELETE FROM auctions WHERE id = $1", [id]);
+    
     res.json("Auction Deleted Successfully");
+
   } catch (err) {
     console.error(err.message);
     res.status(500).json("Server Error");
@@ -177,12 +216,32 @@ const deleteAuction = async (req, res) => {
 
 const getMyAuctions = async (req, res) => {
   try {
-    const myAuctions = await pool.query("SELECT * FROM auctions WHERE seller_id = $1", [req.user]);
+    console.log("AUTH HEADER:", req.headers.authorization);
+    console.log("REQ.USER:", req.user);
+
+    const userId = Number(req.user);
+    if (!userId) return res.status(401).json("Unauthorized");
+
+    await pool.query(`
+      UPDATE auctions
+      SET status = 'ended'
+      WHERE seller_id = $1
+        AND end_time < NOW()
+        AND TRIM(LOWER(status)) = 'active'
+    `, [userId]);
+
+    const myAuctions = await pool.query(
+      "SELECT * FROM auctions WHERE seller_id = $1",
+      [userId]
+    );
+
     res.json(myAuctions.rows);
   } catch (err) {
-    console.error(err.message);
+    console.error("getMyAuctions error:", err);
     res.status(500).json("Server Error");
   }
 };
+
+
 
 module.exports = {createAuction, getAllAuctions, getAuctionById, getMyAuctions, deleteAuction, updateAuction, deleteImage};

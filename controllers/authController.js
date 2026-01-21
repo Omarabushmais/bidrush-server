@@ -55,17 +55,17 @@ const login = async (req, res) => {
     const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
 
     if (user.rows.length === 0) {
-      return res.status(401).json({ message: "Invalid Email" });
+      return res.status(400).json({ message: "Invalid Email" });
     }
 
     if (user.rows[0].status === 'suspended') {
-        return res.status(403).json({ message: "You have been suspended." });
+        return res.status(400).json({ message: "You have been suspended." });
     }
 
     const validPassword = await bcrypt.compare(password, user.rows[0].password);
 
     if (!validPassword) {
-      return res.status(401).json({ message: "Incorrect Password" });
+      return res.status(400).json({ message: "Incorrect Password" });
     }
 
     const token = jwt.sign(
@@ -77,7 +77,8 @@ const login = async (req, res) => {
     res.json({ 
       token, 
       role: user.rows[0].role,
-      username: user.rows[0].username
+      username: user.rows[0].username,
+      userId: user.rows[0].id
     });
 
   } catch (err) {
