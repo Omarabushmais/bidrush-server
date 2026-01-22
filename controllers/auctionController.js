@@ -1,5 +1,4 @@
 const pool = require("../db");
-
 const fs = require("fs");
 const path = require("path");
 
@@ -8,14 +7,10 @@ const path = require("path");
 const createAuction = async (req, res) => {
     try{
         const {title, description, category, starting_price, bid_increment, start_time, end_time} = req.body;
-        
         const imageFiles = req.files;
-
         const newAuction = await pool.query(
-            `INSERT INTO auctions (
-                seller_id, title, description, category, starting_price, current_price, bid_increment, status, start_time, end_time
-            ) VALUES ($1, $2, $3, $4, $5, $5, $6, 'active', $7, $8) 
-            RETURNING *`,
+            `INSERT INTO auctions (seller_id, title, description, category, starting_price, current_price, bid_increment, status, start_time, end_time)
+             VALUES ($1, $2, $3, $4, $5, $5, $6, 'active', $7, $8) RETURNING *`,
             [req.user, title, description, category, starting_price, bid_increment, start_time, end_time]
         );
 
@@ -41,21 +36,17 @@ const createAuction = async (req, res) => {
 };
 
 // ===============VIEW ALL AUCTION===============
+
 const getAllAuctions = async (req, res) => {
   try {
     await pool.query(`
-      UPDATE auctions
-      SET status = 'ended'
-      WHERE end_time < NOW()
-        AND TRIM(LOWER(status)) = 'active'
+      UPDATE auctions SET status = 'ended'
+      WHERE end_time < NOW() AND TRIM(LOWER(status)) = 'active'
     `);
 
     const allAuctions = await pool.query(`
-      SELECT a.*, 
-             u.username, 
-             (SELECT image_url FROM auction_images WHERE auction_id = a.id LIMIT 1) AS image
-      FROM auctions a
-      JOIN users u ON a.seller_id = u.id
+      SELECT a.*, u.username, (SELECT image_url FROM auction_images WHERE auction_id = a.id LIMIT 1) AS image
+      FROM auctions a JOIN users u ON a.seller_id = u.id
     `);
 
     res.json(allAuctions.rows);
@@ -66,21 +57,19 @@ const getAllAuctions = async (req, res) => {
 };
 
 // ===============VIEW ONE AUCTION===============
+
 const getAuctionById = async (req, res) => {
   try {
     const { id } = req.params;
 
     await pool.query(`
-      UPDATE auctions
-      SET status='ended'
+      UPDATE auctions SET status='ended'
       WHERE id = $1 AND end_time < NOW() AND TRIM(LOWER(status))='active'
     `, [id]);
 
     const auctionQuery = await pool.query(`
-      SELECT a.*, u.username AS seller_name
-      FROM auctions a
-      JOIN users u ON a.seller_id = u.id
-      WHERE a.id = $1
+      SELECT a.*, u.username AS seller_name FROM auctions a
+      JOIN users u ON a.seller_id = u.id WHERE a.id = $1
     `, [id]);
 
     if (auctionQuery.rows.length === 0) {
@@ -101,6 +90,7 @@ const getAuctionById = async (req, res) => {
     res.status(500).json("Server Error");
   }
 };
+
 // ===============EDIT AUCTION===============
 
 const updateAuction = async (req, res) => {
@@ -110,8 +100,7 @@ const updateAuction = async (req, res) => {
     const imageFiles = req.files;
 
     const result = await pool.query(
-      `UPDATE auctions 
-       SET title = $1, description = $2, category = $3, starting_price = $4, bid_increment = $5, start_time = $6, end_time = $7 
+      `UPDATE auctions SET title = $1, description = $2, category = $3, starting_price = $4, bid_increment = $5, start_time = $6, end_time = $7 
        WHERE id = $8 AND seller_id = $9 AND TRIM(LOWER(status)) = 'active' RETURNING *`,
       [title, description, category, starting_price, bid_increment, start_time, end_time, id, req.user]
     );
@@ -119,7 +108,6 @@ const updateAuction = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(403).json("Cannot edit: not yours, not found, or already completed.");
     }
-
 
     if (imageFiles && imageFiles.length > 0) {
       for (const file of imageFiles) {
@@ -139,15 +127,15 @@ const updateAuction = async (req, res) => {
   }
 };
 
+// ===============DELETE IMAGE===============
+
 const deleteImage = async (req, res) => {
     try {
         const { imageId } = req.params;
 
         const checkImage = await pool.query(
-            `SELECT i.id, i.image_url 
-             FROM auction_images i 
-             JOIN auctions a ON i.auction_id = a.id 
-             WHERE i.id = $1 AND a.seller_id = $2`,
+            `SELECT i.id, i.image_url FROM auction_images i 
+             JOIN auctions a ON i.auction_id = a.id WHERE i.id = $1 AND a.seller_id = $2`,
             [imageId, req.user]
         );
 
@@ -216,18 +204,13 @@ const deleteAuction = async (req, res) => {
 
 const getMyAuctions = async (req, res) => {
   try {
-    console.log("AUTH HEADER:", req.headers.authorization);
-    console.log("REQ.USER:", req.user);
 
     const userId = Number(req.user);
     if (!userId) return res.status(401).json("Unauthorized");
 
     await pool.query(`
-      UPDATE auctions
-      SET status = 'ended'
-      WHERE seller_id = $1
-        AND end_time < NOW()
-        AND TRIM(LOWER(status)) = 'active'
+      UPDATE auctions SET status = 'ended'
+      WHERE seller_id = $1 AND end_time < NOW() AND TRIM(LOWER(status)) = 'active'
     `, [userId]);
 
     const myAuctions = await pool.query(
@@ -241,7 +224,5 @@ const getMyAuctions = async (req, res) => {
     res.status(500).json("Server Error");
   }
 };
-
-
 
 module.exports = {createAuction, getAllAuctions, getAuctionById, getMyAuctions, deleteAuction, updateAuction, deleteImage};

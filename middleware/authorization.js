@@ -17,9 +17,7 @@ module.exports = async (req, res, next) =>{
     }catch(err){
         console.error(err.name);
         return res.status(401).json(
-            err.name === "TokenExpiredError"
-                ? "Token Expired"
-                : "Token Invalid"
+            err.name === "TokenExpiredError" ? "Token Expired" : "Token Invalid"
             );
     }
 }
