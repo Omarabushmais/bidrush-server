@@ -9,6 +9,13 @@ require('dotenv').config();
 
 const app = express();
 
+const fs = require("fs");
+const uploadDir = path.join(__dirname, "public", "uploads");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 app.use(morgan('dev'));
 app.use(cors());
 app.use(express.json());
