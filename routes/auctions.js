@@ -1,7 +1,6 @@
 const router = require("express").Router();
 const authorization = require("../middleware/authorization");
 const auctionController = require("../controllers/auctionController");
-
 const upload = require("../middleware/upload");
 
 router.post("/create", authorization, upload.array("images", 5), auctionController.createAuction);

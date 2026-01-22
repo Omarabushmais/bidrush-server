@@ -3,6 +3,10 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
+const FRONTEND_URL = "http://localhost:5173";
+
+// ===================REGISTER=======================
+
 const register = async (req, res) => {
   try {
     const { fullname, username, email, password, phone_number } = req.body;
@@ -46,7 +50,7 @@ const register = async (req, res) => {
 };
 
 
-// ==========================================
+// ==================LOGIN========================
 
 const login = async (req, res) => {
   try {
@@ -91,7 +95,6 @@ const login = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    // Only fetching personal info, no admin fields
     const user = await pool.query(
       "SELECT id, fullname, username, email, phone_number, created_at FROM users WHERE id = $1",
       [req.user]
@@ -172,8 +175,6 @@ const suspendUser = async (req, res) => {
 };
 
 // ===================FORGET PASS=======================
-
-const FRONTEND_URL = "http://localhost:5173";
 
 const forgotPassword = async (req, res) => {
   try {

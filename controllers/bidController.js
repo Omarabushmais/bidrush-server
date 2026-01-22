@@ -1,6 +1,7 @@
 const pool = require("../db");
 
 // =============== CREATE BID ===============
+
 const createBid = async (req, res) => {
     try {
         const { auction_id, amount } = req.body;
@@ -49,6 +50,7 @@ const createBid = async (req, res) => {
 };
 
 // =============== GET ALL BIDS ===============
+
 const getAllBids = async (req, res) => {
     try {
         const allBids = await pool.query("SELECT * FROM bids");
@@ -60,16 +62,14 @@ const getAllBids = async (req, res) => {
 };
 
 // =============== GET BIDS FOR SPECIFIC AUCTION ===============
+
 const getBidsByAuctionId = async (req, res) => {
     try {
         const { auctionId } = req.params;
 
         const bids = await pool.query(
-            `SELECT b.*, u.username 
-             FROM bids b 
-             JOIN users u ON b.bidder_id = u.id 
-             WHERE b.auction_id = $1 
-             ORDER BY b.amount DESC`, 
+            `SELECT b.*, u.username FROM bids b JOIN users u ON b.bidder_id = u.id 
+             WHERE b.auction_id = $1 ORDER BY b.amount DESC`, 
             [auctionId]
         );
 
@@ -105,6 +105,7 @@ const deleteBid = async (req, res) => {
 };
 
 // =============== UPDATE BID ===============
+
 const updateBid = async (req, res) => {
     try {
         const { id } = req.params;
@@ -140,18 +141,14 @@ const updateBid = async (req, res) => {
     }
 };
 
-
-
 // ===================MYBIDS==========================
 
 const getMyBids = async (req, res) => {
     try {
         const myBids = await pool.query(
             `SELECT b.*, a.title, a.status AS auction_status, a.end_time, a.current_price as auction_current_price
-             FROM bids b
-             JOIN auctions a ON b.auction_id = a.id
-             WHERE b.bidder_id = $1
-             ORDER BY b.created_at DESC`,
+             FROM bids b JOIN auctions a ON b.auction_id = a.id
+             WHERE b.bidder_id = $1 ORDER BY b.created_at DESC`,
             [req.user]
         );
         res.json(myBids.rows);

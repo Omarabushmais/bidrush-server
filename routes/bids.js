@@ -15,5 +15,3 @@ router.delete("/delete/:id", authorization, bidController.deleteBid);
 router.get("/user/my-bids", authorization, bidController.getMyBids);
 
 module.exports = router;
-
-

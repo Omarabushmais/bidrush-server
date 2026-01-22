@@ -2,11 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require("path");
-require('dotenv').config();
-
 const authRoutes = require('./routes/authRoutes');
 const auctionRoutes = require('./routes/auctions');
 const bidRoutes = require('./routes/bids');
+require('dotenv').config();
 
 const app = express();
 
@@ -17,7 +16,6 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/auctions', auctionRoutes);
 app.use('/bids', bidRoutes);
-
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 app.get('/', (req, res) => {
