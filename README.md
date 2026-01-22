@@ -32,6 +32,7 @@ JWT_SECRET=your_super_secret_key
 NODE_ENV=development
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_email_password
+FRONT_URL=front URL
 
 # 4. Start the server
 npm start
