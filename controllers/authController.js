@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-const FRONTEND_URL = "http://localhost:5173";
+const FRONTEND_URL = process.env.FRONT_URL
 
 // ===================REGISTER=======================
 
